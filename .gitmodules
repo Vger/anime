@@ -1,0 +1,3 @@
+[submodule "lua-http"]
+	path = lua-http
+	url = https://github.com/daurnimator/lua-http.git
