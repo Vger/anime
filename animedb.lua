@@ -2,8 +2,9 @@ local dbi = require "DBI"
 
 local M = {}
 
-function M.open()
-	M.dbh = assert(dbi.Connect("SQLite3", "myanime.sqlite3"))
+function M.open(dir)
+	dir = dir or "."
+	M.dbh = assert(dbi.Connect("SQLite3", dir .. "/myanime.sqlite3"))
 	return M.dbh
 end
 
@@ -62,6 +63,74 @@ function M.insert_tag(tag, dbh)
 	assert(stmt:execute(tag))
 
 	return dbh:last_id()
+end
+
+-- Get sqlite3 statement that lists all anime titles belonging to user.
+-- Optionally include/exclude entries based on tags.
+function M.get_list(filtertag, dbh)
+	local sql, stmt
+
+	dbh = dbh or M.dbh
+
+	if filtertag == nil then
+		sql = [[
+SELECT l.id AS id,
+l.title AS title,
+l.episodes AS episodes,
+l.rate AS rate,
+l.watched_episodes AS watched_episodes,
+GROUP_CONCAT(t.tag) AS tags
+FROM mylist l
+LEFT JOIN mytags mt ON l.id = mt.listid
+LEFT JOIN tags t ON mt.tagid = t.id
+GROUP BY title ORDER BY title;]]
+		stmt = assert(dbh:prepare(sql))
+		assert(stmt:execute())
+	else
+		local numincludes = filtertag.include and #filtertag.include or 0
+		local numexcludes = filtertag.exclude and #filtertag.exclude or 0
+		local execvars = {}
+		sql = [[
+SELECT l.id AS id,
+l.title AS title,
+l.episodes AS episodes,
+l.rate AS rate,
+l.watched_episodes AS watched_episodes,
+GROUP_CONCAT(t.tag) AS tags
+FROM mylist l
+JOIN mytags mt ON l.id = mt.listid
+JOIN tags t ON mt.tagid = t.id
+]]
+
+		if numincludes > 0 then
+			sql = sql .. string.format([[
+WHERE l.id IN
+(SELECT listid
+FROM mytags mt
+JOIN tags t ON mt.tagid = t.id
+WHERE t.tag IN (%s))
+]], string.rep(',?', numincludes):sub(2))
+			for i=1, numincludes do
+				execvars[#execvars + 1] = filtertag.include[i]
+			end
+		end
+		if numexcludes > 0 then
+			sql = sql .. ((numincludes > 0) and " AND " or " WHERE ") .. string.format([[
+l.id NOT IN
+(SELECT listid
+FROM mytags mt
+JOIN tags t ON mt.tagid = t.id
+WHERE t.tag IN (%s))
+]], string.rep(',?', numexcludes):sub(2))
+			for i=1, numexcludes do
+				execvars[#execvars + 1] = filtertag.exclude[i]
+			end
+		end
+		sql = sql .. "GROUP BY title ORDER BY title;"
+		stmt = assert(dbh:prepare(sql))
+		assert(stmt:execute(table.unpack(execvars)))
+	end
+	return stmt
 end
 
 return M
