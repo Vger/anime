@@ -144,12 +144,12 @@ local function import_handler(dbh, animeinfo)
 
 	animeid = animeinfo["series_animedb_id"]
 	sql = "INSERT OR REPLACE INTO mylist(id, title, episodes, series_type, rate, watched_episodes, status) VALUES (?, ?, ?, ?, ?, ?, ?)"
-	stmt = assert(dbh:prepare(sql))
+	stmt = assert(dbh.dbh:prepare(sql))
 	assert(stmt:execute(animeid, animeinfo["series_title"], animeinfo["series_episodes"], seriestype, animeinfo["my_score"], animeinfo["my_watched_episodes"], statustype))
 	stmt:close()
 
 	sql = "INSERT OR IGNORE INTO mytags(listid, tagid) VALUES (?, ?)"
-	stmt = assert(dbh:prepare(sql))
+	stmt = assert(dbh.dbh:prepare(sql))
 	for tag in string.gmatch(animeinfo["my_tags"], "[^,]+") do
 		tag = trim(tag)
 		tagid = dbh:insert_tag(tag)

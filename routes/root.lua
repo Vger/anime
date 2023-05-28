@@ -20,14 +20,16 @@ local function root_get(ctx)
 	stmt = dbh:get_list(filtertag)
 
 	ctx:send([[
-<table>
+<div id="list">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" align="center">
 <tr>
-<th>Title</th>
-<th>Rate</th>
-<th>Progress</th>
-<th>Tags</th>
+<th class="th_left">Title</th>
+<th class="th">Rate</th>
+<th class="th">Progress</th>
+<th class="th">Tags</th>
 </tr>]])
 
+	local altrow = 1
 	for row in stmt:rows(true) do
 		local tags = string.gsub(row["tags"] or "", ",", ", ")
 		local increase_progress = ""
@@ -36,17 +38,25 @@ local function root_get(ctx)
 <a href="javascript:increase_progress(%d)">+</a>]], row["id"])
 		end
 		ctx:send(string.format([[
-<tr>
-<td>%s</td>
-<td>%d</td>
-<td>%d/%d%s</td>
-<td>%s</td>
+<tr class="tr%d">
+<td class="td_left">%s</td>
+<td class="td">%d</td>
+<td class="td">%d/%d%s</td>
+<td class="td_tag">%s</td>
 </tr>
-]], xml_escape(row["title"]), row["rate"], row["watched_episodes"], row["episodes"], increase_progress, xml_escape(tags)))
+]], altrow,
+xml_escape(row["title"]),
+row["rate"],
+row["watched_episodes"], row["episodes"], increase_progress,
+xml_escape(tags)))
+		altrow = altrow + 1
+		if altrow > 2 then
+			altrow = 1
+		end
 	end
 	stmt:close()
 
-	ctx:send("</table>")
+	ctx:send("</table></div>")
 end
 
 return function(ctx)
@@ -59,7 +69,8 @@ return function(ctx)
 		return
 	end
 	ctx:std_header()
-	ctx:std_html_head([[<script src="res/list.js"></script>]])
+	ctx:std_html_head([[<script src="res/list.js"></script>
+<link rel="stylesheet" href="res/list.css" type="text/css"/>]])
 	root_get(ctx)
         ctx:std_html_done()
 end

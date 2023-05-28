@@ -1,3 +1,8 @@
+--[[
+-- Main functionality for looking up handlers for different URIs.
+--
+-- Also adds some convenience methods for sending data back to http client.
+--]]
 local M = {}
 
 local http_headers = require "http.headers"
@@ -48,6 +53,7 @@ function route_methods:send_file(fd)
 	assert(self.stream:write_body_from_file(fd))
 end
 
+-- Send html head to client and starts a html body
 function route_methods:std_html_head(headdata)
 	self:send(string.format([[<!DOCTYPE html>
 <html>
@@ -56,14 +62,17 @@ function route_methods:std_html_head(headdata)
 <body>]], headdata or ""))
 end
 
+-- Finish off html body and the html document
 function route_methods:std_html_done()
 	self:send("\n</body>\n</html>", true)
 end
 
+-- Get available routes (handlers for different URIs)
 function M.get_routes()
 	return routes
 end
 
+-- Set routes (handlers for different URIs)
 function M.set_routes(new_routes)
 	if type(new_routes) == "table" then
 		routes = new_routes
@@ -72,6 +81,10 @@ function M.set_routes(new_routes)
 	end
 end
 
+-- The main handler that is being called by http server and that deals with
+-- incoming http request.
+--
+-- It dispatches handling depending on the URI in the request.
 function M.onstream(myserver, stream)
 	-- Get headers
 	local req_headers = assert(stream:get_headers())
