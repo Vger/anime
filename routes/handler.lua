@@ -54,12 +54,14 @@ function route_methods:send_file(fd)
 end
 
 -- Send html head to client and starts a html body
-function route_methods:std_html_head(headdata)
+function route_methods:std_html_head(headdata, bodyattr)
+	headdata = headdata or ""
+	bodyattr = bodyattr or ""
 	self:send(string.format([[<!DOCTYPE html>
 <html>
 <head>%s
 </head>
-<body>]], headdata or ""))
+<body%s%s>]], headdata, bodyattr ~= "" and " " or "", bodyattr))
 end
 
 -- Finish off html body and the html document

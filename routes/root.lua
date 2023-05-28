@@ -70,7 +70,7 @@ return function(ctx)
 	end
 	ctx:std_header()
 	ctx:std_html_head([[<script src="res/list.js"></script>
-<link rel="stylesheet" href="res/list.css" type="text/css"/>]])
+<link rel="stylesheet" href="res/list.css" type="text/css"/>]], [[onload="make_tags()"]])
 	root_get(ctx)
         ctx:std_html_done()
 end
