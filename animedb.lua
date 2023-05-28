@@ -2,15 +2,22 @@ local dbi = require "DBI"
 
 local M = {}
 
+local animedb_methods = {}
+
+local animedb_mt = {
+	__index = animedb_methods
+}
+
 function M.open(dir)
 	dir = dir or "."
-	M.dbh = assert(dbi.Connect("SQLite3", dir .. "/myanime.sqlite3"))
-	return M.dbh
+	local dbh = assert(dbi.Connect("SQLite3", dir .. "/myanime.sqlite3"))
+	return setmetatable({
+		dbh = dbh
+	}, animedb_mt)
 end
 
-function M.create(dbh)
-	local sql, stmt
-	dbh = dbh or M.dbh
+function animedb_methods:create()
+	local dbh, sql, stmt = self.dbh
 
 	sql = "CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY, tag TEXT NOT NULL);"
 	stmt = assert(dbh:prepare(sql))
@@ -35,18 +42,17 @@ function M.create(dbh)
 	dbh:commit()
 end
 
-function M.close(dbh)
-	dbh = dbh or M.dbh
+function animedb_methods:close()
+	local dbh = self.dbh
 	if not dbh then return end
 
 	dbh:commit()
 	dbh:close()
+	self.dbh = nil
 end
 
-function M.insert_tag(tag, dbh)
-	local sql, stmt, row
-
-	dbh = dbh or M.dbh
+function animedb_methods:insert_tag(tag)
+	local dbh, sql, stmt, row = self.dbh
 
 	sql = "SELECT id FROM tags WHERE tag=?"
 	stmt = assert(dbh:prepare(sql))
@@ -67,10 +73,8 @@ end
 
 -- Get sqlite3 statement that lists all anime titles belonging to user.
 -- Optionally include/exclude entries based on tags.
-function M.get_list(filtertag, dbh)
-	local sql, stmt
-
-	dbh = dbh or M.dbh
+function animedb_methods:get_list(filtertag)
+	local dbh, sql, stmt = self.dbh
 
 	if filtertag == nil then
 		sql = [[

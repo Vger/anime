@@ -139,8 +139,8 @@ end
 local function import_handler(dbh, animeinfo)
 	local sql, stmt, animetype, animeid, statustype, tagid, mylistid, tag
 
-	seriestype = animedb.insert_tag(animeinfo["series_type"], dbh)
-	statustype = animedb.insert_tag(animeinfo["my_status"], dbh)
+	seriestype = dbh:insert_tag(animeinfo["series_type"])
+	statustype = dbh:insert_tag(animeinfo["my_status"])
 
 	animeid = animeinfo["series_animedb_id"]
 	sql = "INSERT OR REPLACE INTO mylist(id, title, episodes, series_type, rate, watched_episodes, status) VALUES (?, ?, ?, ?, ?, ?, ?)"
@@ -152,7 +152,7 @@ local function import_handler(dbh, animeinfo)
 	stmt = assert(dbh:prepare(sql))
 	for tag in string.gmatch(animeinfo["my_tags"], "[^,]+") do
 		tag = trim(tag)
-		tagid = animedb.insert_tag(tag, dbh)
+		tagid = dbh:insert_tag(tag)
 		assert(stmt:execute(animeid, tagid))
 	end
 	stmt:close()
@@ -161,7 +161,7 @@ end
 do
 	local dbh = animedb.open()
 
-	animedb.create(dbh)
+	dbh:create()
 
 	add_anime = function(animeinfo)
 		import_handler(dbh, animeinfo)
@@ -169,5 +169,5 @@ do
 
 	import_reader(arg[1])
 
-	animedb.close(dbh)
+	dbh:close()
 end
